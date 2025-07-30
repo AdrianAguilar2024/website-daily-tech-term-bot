@@ -11,28 +11,32 @@ PORTFOLIO_HTML_FILE = f"{PORTFOLIO_REPO_PATH}/index.html"
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 
 # --- 1. SCRAPE THE TECH TERM ---
+# REPLACE IT WITH THIS NEW VERSION
 def get_tech_term():
     try:
-        # THIS IS THE NEW PART: We add headers to mimic a real browser
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
         }
 
-        url = "https://techterms.com/top_terms"
-        # We now pass the headers with our request
+        # THIS IS THE NEW URL for the dictionary index
+        url = "https://techterms.com/definition/"
+        
         response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status() # This will raise an error if the request fails (e.g., 403 Forbidden)
+        response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
-        term_links = soup.select('div.content-container-2 td a')
+        
+        # THIS IS THE NEW SELECTOR for finding links on the new page
+        term_links = soup.select('div#dictionary_content td a')
+        
         if not term_links:
             print("Could not find term links on the page.")
             return None, None
 
         random_term_link = random.choice(term_links)['href']
-        term_url = f"https://techterms.com{random_term_link}"
+        # The links on this page are already full URLs, so we don't need to add the domain
+        term_url = random_term_link
         
-        # We use the same headers to visit the term's page
         term_response = requests.get(term_url, headers=headers, timeout=10)
         term_response.raise_for_status()
         
