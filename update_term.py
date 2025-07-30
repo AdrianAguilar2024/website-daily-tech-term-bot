@@ -13,13 +13,41 @@ PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 # --- 1. SCRAPE THE TECH TERM ---
 def get_tech_term():
     try:
+        # THIS IS THE NEW PART: We add headers to mimic a real browser
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
+        }
+
         url = "https://techterms.com/top_terms"
-        response = requests.get(url, timeout=10)
+        # We now pass the headers with our request
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status() # This will raise an error if the request fails (e.g., 403 Forbidden)
+        
         soup = BeautifulSoup(response.text, 'html.parser')
         term_links = soup.select('div.content-container-2 td a')
         if not term_links:
-            print("Could not find term links.")
+            print("Could not find term links on the page.")
             return None, None
+
+        random_term_link = random.choice(term_links)['href']
+        term_url = f"https://techterms.com{random_term_link}"
+        
+        # We use the same headers to visit the term's page
+        term_response = requests.get(term_url, headers=headers, timeout=10)
+        term_response.raise_for_status()
+        
+        term_soup = BeautifulSoup(term_response.text, 'html.parser')
+        title = term_soup.find('h1', class_='page-title').text.strip()
+        definition = term_soup.find('div', class_='term-definition').find('p').text.strip()
+        
+        print(f"Successfully scraped: {title}")
+        return title, definition
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err} - Status code: {http_err.response.status_code}")
+        return None, None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None, None
         random_term_link = random.choice(term_links)['href']
         term_url = f"https://techterms.com{random_term_link}"
         term_response = requests.get(term_url, timeout=10)
