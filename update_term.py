@@ -10,33 +10,29 @@ PORTFOLIO_REPO_PATH = "../AdrianAguilar2024.github.io"
 PORTFOLIO_HTML_FILE = f"{PORTFOLIO_REPO_PATH}/index.html"
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 
-# --- 1. SCRAPE A TERM FROM THE "TECHNICAL" CATEGORY PAGE ---
+# --- 1. GET A TERM FROM OUR LOCAL LIST ---
 def get_tech_term():
     try:
+        # Step 1: Read our local list of term "slugs"
+        with open('terms_list.txt', 'r') as f:
+            terms = [line.strip() for line in f if line.strip()]
+        
+        if not terms:
+            print("Error: terms_list.txt is empty or not found.")
+            return None, None
+            
+        # Step 2: Pick a random term from our list
+        random_term_slug = random.choice(terms)
+        print(f"Selected random term from local list: {random_term_slug}")
+        
+        # Step 3: Build the URL for that specific term's definition page
+        term_url = f"https://techterms.com/definition/{random_term_slug}"
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
-        # YOUR NEW URL for the Technical category
-        url = "https://techterms.com/category/technical"
-        
-        response = requests.get(url, headers=headers, timeout=15)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # The selector for links on this category page
-        term_links = soup.select('ul.termlist a')
-        
-        if not term_links:
-            print("Could not find term links on the category page.")
-            return None, None
-
-        # Pick a random term from the list
-        random_term_link = random.choice(term_links)['href']
-        term_url = random_term_link # The links are already full URLs
-        
-        # Scrape the specific term's page
+        # Step 4: Scrape that single, specific page
         term_response = requests.get(term_url, headers=headers, timeout=15)
         term_response.raise_for_status()
         
@@ -46,8 +42,11 @@ def get_tech_term():
         
         print(f"Successfully scraped: {title}")
         return title, definition
+    except FileNotFoundError:
+        print("Error: terms_list.txt not found. Please create it.")
+        return None, None
     except Exception as e:
-        print(f"An error occurred while scraping: {e}")
+        print(f"An error occurred: {e}")
         return None, None
 
 # --- 2. GET A RELEVANT IMAGE ---
