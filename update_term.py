@@ -3,37 +3,48 @@ import random
 from bs4 import BeautifulSoup
 import requests
 from pexels_api import API
-from datetime import datetime # Import the datetime library
+from datetime import datetime
 
 # --- CONFIGURATION ---
 PORTFOLIO_REPO_PATH = "../AdrianAguilar2024.github.io"
 PORTFOLIO_HTML_FILE = f"{PORTFOLIO_REPO_PATH}/index.html"
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 
-# --- 1. SCRAPE THE "TERM OF THE DAY" FROM THE MAIN PAGE ---
-def get_term_of_the_day():
+# --- 1. SCRAPE A TERM FROM THE "TECHNICAL" CATEGORY PAGE ---
+def get_tech_term():
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
-        url = "https://techterms.com/" # The main page
+        # YOUR NEW URL for the Technical category
+        url = "https://techterms.com/category/technical"
+        
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Find the "Term of the Day" section
-        term_div = soup.find('div', class_='wod') # 'wod' is the class for "Word of the Day"
+        # The selector for links on this category page
+        term_links = soup.select('ul.termlist a')
         
-        if not term_div:
-            print("Could not find the 'Term of the Day' section.")
+        if not term_links:
+            print("Could not find term links on the category page.")
             return None, None
-            
-        title = term_div.find('h2').text.strip()
-        definition = term_div.find('p').text.strip()
+
+        # Pick a random term from the list
+        random_term_link = random.choice(term_links)['href']
+        term_url = random_term_link # The links are already full URLs
         
-        print(f"Successfully scraped Term of the Day: {title}")
+        # Scrape the specific term's page
+        term_response = requests.get(term_url, headers=headers, timeout=15)
+        term_response.raise_for_status()
+        
+        term_soup = BeautifulSoup(term_response.text, 'html.parser')
+        title = term_soup.find('h1', class_='page-title').text.strip()
+        definition = term_soup.find('div', class_='term-definition').find('p').text.strip()
+        
+        print(f"Successfully scraped: {title}")
         return title, definition
     except Exception as e:
         print(f"An error occurred while scraping: {e}")
@@ -67,21 +78,19 @@ def update_portfolio(title, definition, image_url, date_str):
             html_content = f.read()
         soup = BeautifulSoup(html_content, 'html.parser')
         
-        # Find the elements by their IDs
         img_tag = soup.find(id='tech-term-image')
         title_tag = soup.find(id='tech-term-title')
-        date_tag = soup.find(id='tech-term-date') # New date tag
+        date_tag = soup.find(id='tech-term-date')
         def_tag = soup.find(id='tech-term-definition')
 
         if not all([img_tag, title_tag, date_tag, def_tag]):
             print("Error: Could not find all the required IDs in the HTML file.")
             return
 
-        # Update the content
         img_tag['src'] = image_url
         img_tag['alt'] = f"Image related to {title}"
         title_tag.string = title
-        date_tag.string = f"Updated: {date_str}" # Add the date
+        date_tag.string = f"Updated: {date_str}"
         def_tag.string = definition
         
         with open(PORTFOLIO_HTML_FILE, 'w', encoding='utf-8') as f:
@@ -92,11 +101,9 @@ def update_portfolio(title, definition, image_url, date_str):
 
 # --- MAIN EXECUTION ---
 if __name__ == "__main__":
-    term_title, term_def = get_term_of_the_day()
+    term_title, term_def = get_tech_term()
     if term_title and term_def:
-        # Get the current date and format it
         today_date = datetime.now().strftime("%B %d, %Y")
-        
         search_query = term_title.split('(')[0].strip()
         term_image_url = get_term_image(search_query)
         update_portfolio(term_title, term_def, term_image_url, today_date)
