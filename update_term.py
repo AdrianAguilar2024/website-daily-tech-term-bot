@@ -1,7 +1,6 @@
 import os
 import random
-from bs4 import BeautifulSoup
-import requests
+import json # Import the json library
 from pexels_api import API
 from datetime import datetime
 
@@ -10,56 +9,27 @@ PORTFOLIO_REPO_PATH = "../AdrianAguilar2024.github.io"
 PORTFOLIO_HTML_FILE = f"{PORTFOLIO_REPO_PATH}/index.html"
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 
-# --- 1. GET A TERM FROM OUR LOCAL LIST ---
+# --- 1. GET A TERM FROM OUR LOCAL JSON FILE ---
 def get_tech_term():
     try:
-        with open('terms_list.txt', 'r') as f:
-            terms = [line.strip() for line in f if line.strip()]
+        # Read our local dictionary of terms and definitions
+        with open('definitions.json', 'r', encoding='utf-8') as f:
+            terms_data = json.load(f)
         
-        if not terms:
-            print("Error: terms_list.txt is empty or not found.")
+        if not terms_data:
+            print("Error: definitions.json is empty or not found.")
             return None, None
             
-        random_term_slug = random.choice(terms)
-        print(f"Selected random term from local list: {random_term_slug}")
+        # Pick a random term object from the list
+        random_term_obj = random.choice(terms_data)
+        title = random_term_obj['term']
+        definition = random_term_obj['definition']
         
-        term_url = f"https://techterms.com/definition/{random_term_slug}"
-
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        term_response = requests.get(term_url, headers=headers, timeout=15)
-        term_response.raise_for_status()
-        
-        term_soup = BeautifulSoup(term_response.text, 'html.parser')
-        
-        # --- THIS IS THE FINAL FIX ---
-        # First, find the main content area of the page to be more specific.
-        content_area = term_soup.find('div', id='content')
-        if not content_area:
-            print("Could not find the main content area of the page.")
-            return None, None
-            
-        # Now, search for the title and definition *within* that specific area.
-        title_tag = content_area.find('h1', class_='page-title')
-        definition_div = content_area.find('div', class_='term-definition')
-
-        if title_tag:
-            title = title_tag.text.strip()
-        else:
-            print("Could not find the title tag.")
-            return None, None
-
-        if definition_div:
-            definition = definition_div.text.strip()
-        else:
-            print("Could not find the definition div.")
-            return None, None
-        # --- END OF FIX ---
-        
-        print(f"Successfully scraped: {title}")
+        print(f"Selected random term from local file: {title}")
         return title, definition
+    except FileNotFoundError:
+        print("Error: definitions.json not found. Please create it.")
+        return None, None
     except Exception as e:
         print(f"An error occurred: {e}")
         return None, None
@@ -90,6 +60,10 @@ def update_portfolio(title, definition, image_url, date_str):
     try:
         with open(PORTFOLIO_HTML_FILE, 'r', encoding='utf-8') as f:
             html_content = f.read()
+        
+        # We will use simple string replacement, which is safer than parsing the whole HTML
+        # This looks for special "placeholder" comments in your HTML
+        from bs4 import BeautifulSoup
         soup = BeautifulSoup(html_content, 'html.parser')
         
         img_tag = soup.find(id='tech-term-image')
