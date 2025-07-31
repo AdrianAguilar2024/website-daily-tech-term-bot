@@ -13,7 +13,6 @@ PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
 # --- 1. GET A TERM FROM OUR LOCAL LIST ---
 def get_tech_term():
     try:
-        # Step 1: Read our local list of term "slugs"
         with open('terms_list.txt', 'r') as f:
             terms = [line.strip() for line in f if line.strip()]
         
@@ -21,24 +20,31 @@ def get_tech_term():
             print("Error: terms_list.txt is empty or not found.")
             return None, None
             
-        # Step 2: Pick a random term from our list
         random_term_slug = random.choice(terms)
         print(f"Selected random term from local list: {random_term_slug}")
         
-        # Step 3: Build the URL for that specific term's definition page
         term_url = f"https://techterms.com/definition/{random_term_slug}"
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
-        # Step 4: Scrape that single, specific page
         term_response = requests.get(term_url, headers=headers, timeout=15)
         term_response.raise_for_status()
         
         term_soup = BeautifulSoup(term_response.text, 'html.parser')
         title = term_soup.find('h1', class_='page-title').text.strip()
-        definition = term_soup.find('div', class_='term-definition').find('p').text.strip()
+        
+        # --- THIS IS THE FIX ---
+        # Instead of looking for a 'p' tag, we find the main definition div
+        # and get all of its text content directly. This is more robust.
+        definition_div = term_soup.find('div', class_='term-definition')
+        if definition_div:
+            definition = definition_div.text.strip()
+        else:
+            print(f"Could not find definition div for term: {random_term_slug}")
+            return None, None
+        # --- END OF FIX ---
         
         print(f"Successfully scraped: {title}")
         return title, definition
