@@ -1,11 +1,11 @@
-# Daily Tech Term Web Scraping Bot
+# Daily Tech Term Automation Bot
 
 ![Python Version](https://img.shields.io/badge/python-3.10-blue.svg)
 ![GitHub Actions Status](https://github.com/AdrianAguilar2024/website-daily-tech-term-bot/actions/workflows/run_bot.yml/badge.svg)
 
 This is a fully automated Python bot that runs on a daily schedule to update the "Tech Term of the Day" section on my personal portfolio website, [adrian-aguilar.com](https://www.adrian-aguilar.com).
 
-This project serves as a practical demonstration of several key software engineering skills, including web scraping, API integration, and CI/CD automation.
+This project serves as a practical demonstration of several key software engineering skills, including API integration, data management with JSON, and CI/CD automation.
 
 ---
 
@@ -16,21 +16,22 @@ The entire process is automated using a GitHub Actions workflow that runs once e
 1.  **Scheduled Trigger:** The workflow is triggered by a `cron` job at 12:00 UTC daily.
 2.  **Checkout Repositories:** The Action checks out two repositories: this bot's code and the code for my main portfolio website.
 3.  **Run Python Script:** The main `update_term.py` script is executed. This script performs the following actions:
-    *   It reads from a local `definitions.json` file to select a random technical term and its definition.
+    *   It reads from a local `definitions.json` file, which contains a curated list of technical terms and their definitions.
+    *   It randomly selects one term object (title and definition) from this local data source.
     *   Using the term's title, it makes an API call to the **Pexels API** to search for a high-quality, relevant, and royalty-free image.
     *   It then programmatically reads the `index.html` file from my portfolio repository.
 4.  **Update Website:** The script uses the **BeautifulSoup** library to parse the HTML, find the specific "Tech Term of the Day" section, and replace the image, title, date, and definition with the new content.
 5.  **Commit & Push:** Finally, the GitHub Action commits the modified `index.html` file and pushes the change directly back to my portfolio's repository, triggering a new deployment on GitHub Pages.
 
-The result is a fully automated, self-updating feature on my live portfolio website, requiring zero manual intervention.
+The result is a fully automated, self-updating feature on my live portfolio website, requiring zero manual intervention. This self-contained approach is highly reliable and does not depend on the stability of external website structures.
 
 ## Technology Stack
 
 *   **Language:** Python 3.10
 *   **Key Libraries:**
-    *   **BeautifulSoup4:** For parsing and modifying the HTML file.
-    *   **Pexels-API:** A wrapper for making requests to the Pexels API.
     *   **JSON:** For reading the local term definition data.
+    *   **Pexels-API:** A wrapper for making requests to the Pexels API.
+    *   **BeautifulSoup4:** For robustly parsing and modifying the target HTML file.
 *   **Automation Engine:** GitHub Actions
 *   **API:** Pexels API for royalty-free images
 
