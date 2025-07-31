@@ -33,24 +33,33 @@ def get_tech_term():
         term_response.raise_for_status()
         
         term_soup = BeautifulSoup(term_response.text, 'html.parser')
-        title = term_soup.find('h1', class_='page-title').text.strip()
         
-        # --- THIS IS THE FIX ---
-        # Instead of looking for a 'p' tag, we find the main definition div
-        # and get all of its text content directly. This is more robust.
-        definition_div = term_soup.find('div', class_='term-definition')
+        # --- THIS IS THE FINAL FIX ---
+        # First, find the main content area of the page to be more specific.
+        content_area = term_soup.find('div', id='content')
+        if not content_area:
+            print("Could not find the main content area of the page.")
+            return None, None
+            
+        # Now, search for the title and definition *within* that specific area.
+        title_tag = content_area.find('h1', class_='page-title')
+        definition_div = content_area.find('div', class_='term-definition')
+
+        if title_tag:
+            title = title_tag.text.strip()
+        else:
+            print("Could not find the title tag.")
+            return None, None
+
         if definition_div:
             definition = definition_div.text.strip()
         else:
-            print(f"Could not find definition div for term: {random_term_slug}")
+            print("Could not find the definition div.")
             return None, None
         # --- END OF FIX ---
         
         print(f"Successfully scraped: {title}")
         return title, definition
-    except FileNotFoundError:
-        print("Error: terms_list.txt not found. Please create it.")
-        return None, None
     except Exception as e:
         print(f"An error occurred: {e}")
         return None, None
